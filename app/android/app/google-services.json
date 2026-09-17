@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "104090459139",
+    "project_id": "laboratorio-unefa",
+    "storage_bucket": "laboratorio-unefa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:104090459139:android:5efd3f335d750199290236",
+        "android_client_info": {
+          "package_name": "com.unefa.laboratorio.laboratorio_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB5UcpuHdp3n55PJUIa77jzNs83Dy-aHnE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

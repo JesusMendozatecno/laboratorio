@@ -1,0 +1,130 @@
+rules_version = '2';
+
+// Reglas de seguridad de Cloud Firestore para el sistema del Laboratorio.
+//
+// Principios:
+// - Toda lectura requiere sesión iniciada.
+// - El perfil propio se crea al registrarse (solo rol estudiante o docente).
+// - Solo el encargado administra usuarios, roles y catálogos.
+// - Docentes y encargados crean registros operativos.
+// - Nadie puede cambiar su propio rol (evita escaladas de privilegios).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+
+    function userRole() {
+      return userDoc().tipo;
+    }
+
+    function isEncargado() {
+      return signedIn() && userRole() == 'encargado';
+    }
+
+    function isDocenteOEncargado() {
+      return signedIn() && (userRole() == 'docente' || userRole() == 'encargado');
+    }
+
+    function validRole(role) {
+      return role == 'estudiante' || role == 'docente' || role == 'encargado';
+    }
+
+    function validProfile(data) {
+      return data.keys().hasAll(['uid', 'nombre', 'apellido', 'cedula', 'correo', 'tipo'])
+        && data.nombre is string
+        && data.apellido is string
+        && data.cedula is string
+        && data.correo is string
+        && validRole(data.tipo);
+    }
+
+    function nonEmpty(field) {
+      return field is string && field.size() > 0 && field.size() <= 200;
+    }
+
+    // Perfiles de usuario
+    match /usuarios/{uid} {
+      allow read: if signedIn();
+
+      // El propio usuario crea su perfil (solo estudiante/docente) o el
+      // encargado crea cualquier perfil (por ejemplo, estudiantes).
+      allow create: if signedIn()
+        && request.resource.data.uid == uid
+        && validProfile(request.resource.data)
+        && (
+          isEncargado()
+          || (isSelf(uid) && request.resource.data.tipo in ['estudiante', 'docente'])
+        );
+
+      // El encargado administra cualquier perfil. El propio usuario puede
+      // actualizar sus datos, pero nunca cambiar su propio rol.
+      allow update: if signedIn()
+        && request.resource.data.uid == uid
+        && validProfile(request.resource.data)
+        && (
+          isEncargado()
+          || (isSelf(uid) && request.resource.data.tipo == resource.data.tipo)
+        );
+
+      // Nadie puede eliminar su propio perfil.
+      allow delete: if isEncargado() && !isSelf(uid);
+    }
+
+    // Clases
+    match /clases/{id} {
+      allow read: if signedIn();
+      allow create, update: if isDocenteOEncargado();
+      allow delete: if isEncargado();
+    }
+
+    // Reportes
+    match /reportes/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && nonEmpty(request.resource.data.descripcion);
+      allow update, delete: if isDocenteOEncargado();
+    }
+
+    // Profesores e institutos (solo encargado administra)
+    match /profesores/{id} {
+      allow read: if signedIn();
+      allow write: if isEncargado();
+    }
+
+    match /institutos/{id} {
+      allow read: if signedIn();
+      allow write: if isEncargado();
+    }
+
+    // Equipos (docente y encargado pueden registrar)
+    match /equipos/{id} {
+      allow read: if signedIn();
+      allow create, update: if isDocenteOEncargado();
+      allow delete: if isEncargado();
+    }
+
+    // Asignaciones de estudiantes a equipos
+    match /asignaciones/{id} {
+      allow read: if signedIn();
+      allow create, update: if isDocenteOEncargado();
+      allow delete: if isDocenteOEncargado();
+    }
+
+    // Prácticas de programación
+    match /practicas/{id} {
+      allow read: if signedIn();
+      allow create, update: if isDocenteOEncargado();
+      allow delete: if isDocenteOEncargado();
+    }
+  }
+}

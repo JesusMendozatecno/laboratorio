@@ -150,7 +150,7 @@ class _BrandingPanel extends StatelessWidget {
                       borderRadius: BorderRadius.circular(AppDimens.radiusLg),
                     ),
                     child: const Icon(
-                      Icons.science_rounded,
+                      Icons.computer_rounded,
                       color: Colors.white,
                       size: 46,
                     ),
@@ -211,7 +211,7 @@ class _CompactHeader extends StatelessWidget {
               ),
               borderRadius: BorderRadius.circular(AppDimens.radiusMd),
             ),
-            child: const Icon(Icons.science_rounded, color: Colors.white, size: 30),
+            child: const Icon(Icons.computer_rounded, color: Colors.white, size: 30),
           ),
           const SizedBox(height: AppDimens.md),
           Text(

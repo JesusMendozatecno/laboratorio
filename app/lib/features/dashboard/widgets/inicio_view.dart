@@ -66,7 +66,7 @@ class _WelcomeBanner extends StatelessWidget {
             right: -24,
             bottom: -24,
             child: Icon(
-              Icons.science_outlined,
+              Icons.computer_outlined,
               size: 150,
               color: Colors.white.withValues(alpha: 0.10),
             ),

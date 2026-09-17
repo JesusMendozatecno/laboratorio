@@ -258,7 +258,7 @@ class _AboutSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.science_outlined, color: scheme.primary),
+              Icon(Icons.computer_outlined, color: scheme.primary),
               const SizedBox(width: AppDimens.sm),
               Text(
                 AppStrings.appName,

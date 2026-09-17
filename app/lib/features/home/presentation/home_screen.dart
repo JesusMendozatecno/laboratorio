@@ -75,7 +75,7 @@ class _HeroBanner extends StatelessWidget {
             right: -28,
             bottom: -28,
             child: Icon(
-              Icons.science_outlined,
+              Icons.computer_outlined,
               size: 190,
               color: Colors.white.withValues(alpha: 0.10),
             ),
@@ -102,7 +102,7 @@ class _HeroBanner extends StatelessWidget {
                   color: Colors.white.withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(AppDimens.radiusMd),
                 ),
-                child: const Icon(Icons.science_rounded,
+                child: const Icon(Icons.computer_rounded,
                     color: Colors.white, size: 36),
               ),
               const SizedBox(width: AppDimens.lg),

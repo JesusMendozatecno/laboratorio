@@ -224,7 +224,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
             ),
             borderRadius: BorderRadius.circular(AppDimens.radiusSm),
           ),
-          child: const Icon(Icons.science_rounded, color: Colors.white, size: 24),
+          child: const Icon(Icons.computer_rounded, color: Colors.white, size: 24),
         ),
         const SizedBox(width: AppDimens.sm),
         Expanded(
@@ -436,7 +436,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                         color: Colors.white24,
                         borderRadius: BorderRadius.circular(AppDimens.radiusSm),
                       ),
-                      child: const Icon(Icons.science_rounded,
+                      child: const Icon(Icons.computer_rounded,
                           color: Colors.white, size: 24),
                     ),
                     const SizedBox(width: AppDimens.sm),

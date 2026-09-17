@@ -80,6 +80,19 @@ El archivo queda en `build\app\outputs\flutter-apk\app-release.apk`; cópialo al
 teléfono y ábrelo para instalar (activa "Instalar apps de origen desconocido").
 Guarda la carpeta `build/symbols` para poder leer reportes de errores.
 
+### Descargar el APK sin compilar en tu equipo
+
+El repositorio incluye una **GitHub Action** (`build-apk.yml`) que compila el
+APK en la nube:
+
+1. **GitHub → Actions → "Build Android APK" → *Run workflow*.** Cuando termine,
+   baja el artefacto `laboratorio-apk` (contiene `app-release.apk`).
+2. O crea una etiqueta y se publica una **Release** con el APK adjunto
+   (enlace permanente de descarga):
+   ```bash
+   git tag v1.0.0 && git push origin v1.0.0
+   ```
+
 ## Seguridad
 
 - **Bloqueo con huella/PIN** (`local_auth`): se activa en *Configuración →

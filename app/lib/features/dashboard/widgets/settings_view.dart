@@ -183,8 +183,6 @@ class _SecuritySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final security = context.watch<SecurityProvider>();
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
     final supported = security.platformSupported;
 
     return SectionCard(
@@ -205,36 +203,6 @@ class _SecuritySection extends StatelessWidget {
             value: security.lockEnabled,
             onChanged:
                 supported ? (value) => _toggleLock(context, value) : null,
-          ),
-          const Divider(),
-          const SizedBox(height: AppDimens.sm),
-          Text(
-            'Cerrar sesión por inactividad',
-            style: text.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: AppDimens.xs),
-          Text(
-            'Tiempo sin actividad antes de cerrar la sesión automáticamente.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: AppDimens.md),
-          DropdownButtonFormField<int>(
-            key: ValueKey('timeout-${security.timeoutMinutes}'),
-            initialValue: security.timeoutMinutes,
-            decoration: const InputDecoration(
-              labelText: 'Tiempo de inactividad',
-              prefixIcon: Icon(Icons.timer_outlined),
-            ),
-            items: [
-              for (final minutes in SecurityProvider.timeoutOptions)
-                DropdownMenuItem(
-                  value: minutes,
-                  child: Text(minutes == 0 ? 'Nunca' : '$minutes minutos'),
-                ),
-            ],
-            onChanged: (value) {
-              if (value != null) security.setTimeoutMinutes(value);
-            },
           ),
         ],
       ),

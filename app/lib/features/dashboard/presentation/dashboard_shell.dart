@@ -22,9 +22,9 @@ import 'dashboard_layout.dart';
 
 /// Panel principal CodeClass.
 ///
-/// - Pestañas inferiores (Inicio, Registro, Teoría, Práctica, Usuario).
-/// - Menú lateral para el catálogo (Instituciones) y funciones heredadas
-///   (Usuarios, Asignaciones, Prácticas, Reportes).
+/// - Pestañas inferiores (Inicio, Registro, Teoría, Práctica, Usuario,
+///   Asignaciones, Prácticas, Reportes).
+/// - Menú lateral para el catálogo (Instituciones) y usuarios.
 class DashboardShell extends StatelessWidget {
   const DashboardShell({super.key});
 
@@ -108,8 +108,6 @@ class DashboardShell extends StatelessWidget {
           title: 'Asignaciones',
           description: 'Asigna equipos del laboratorio a los estudiantes.',
           child: const AssignmentsView(),
-          section: DashboardSection.menu,
-          group: 'Legado',
         ),
         _page(
           label: 'Prácticas',
@@ -118,8 +116,6 @@ class DashboardShell extends StatelessWidget {
           description:
               'Registra las prácticas, lenguajes y herramientas del laboratorio.',
           child: const PracticasLegacyView(),
-          section: DashboardSection.menu,
-          group: 'Legado',
         ),
         _page(
           label: 'Reportes',
@@ -127,8 +123,6 @@ class DashboardShell extends StatelessWidget {
           title: 'Reportes',
           description: 'Reportes de novedades del laboratorio.',
           child: const ReportesView(),
-          section: DashboardSection.menu,
-          group: 'Legado',
         ),
       ];
 

@@ -8,12 +8,10 @@ import '../../../../core/widgets/section_card.dart';
 import '../../../../core/widgets/stat_card.dart';
 import '../../../../models/app_user.dart';
 import '../../../../models/codeclass_models.dart';
-import '../../../../providers/instituccion_provider.dart';
 import '../../../../services/firestore_service.dart';
 import '../../presentation/dashboard_layout.dart';
-import 'institution_picker.dart';
 
-/// CC-NAV-01 — Inicio: resumen global y por institución (datos reales).
+/// CC-NAV-01 — Inicio: resumen global (sin filtro por institución).
 class InicioCodeClassView extends StatelessWidget {
   const InicioCodeClassView({super.key, required this.user});
 
@@ -21,19 +19,16 @@ class InicioCodeClassView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final institucion = context.watch<InstituccionProvider>().active;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _CodeClassBanner(user: user),
         const SizedBox(height: AppDimens.xl),
-        InstitutionPicker(),
+        const _StatsGrid(),
         const SizedBox(height: AppDimens.xl),
-        _StatsGrid(institucion: institucion),
+        const _QuickLinks(),
         const SizedBox(height: AppDimens.xl),
-        _QuickLinks(),
-        const SizedBox(height: AppDimens.xl),
-        _ActividadesRecientes(institucion: institucion),
+        const _ActividadesRecientes(),
       ],
     );
   }
@@ -109,37 +104,29 @@ class _CodeClassBanner extends StatelessWidget {
 }
 
 class _StatsGrid extends StatelessWidget {
-  const _StatsGrid({required this.institucion});
-
-  final Institucion? institucion;
+  const _StatsGrid();
 
   @override
   Widget build(BuildContext context) {
-    final base = institucion == null
-        ? null
-        : [QueryFilter('institucionId', institucion!.id)];
     final specs = <_StatSpec>[
       _StatSpec(
         kInstitucionesCollection,
-        institucion == null ? 'Instituciones' : 'Institución',
+        'Instituciones',
         Icons.account_balance_outlined,
-        institucion == null
-            ? 'Catálogo de instituciones'
-            : institucion!.nombre,
-        filter: institucion == null ? null : base,
+        'Catálogo de instituciones',
       ),
       _StatSpec(kMateriasCollection, 'Materias', Icons.topic_outlined,
-          'Materias del catálogo', filter: base),
+          'Materias del catálogo'),
       _StatSpec(kEstudiantesCollection, 'Estudiantes', Icons.groups_outlined,
-          'Estudiantes registrados', filter: base),
+          'Estudiantes registrados'),
       _StatSpec(kEquiposCollection, 'Equipos', Icons.devices_outlined,
-          'Equipos por institución', filter: base),
+          'Equipos por institución'),
       _StatSpec(kClasesCollection, 'Clases', Icons.class_outlined,
-          'Clases creadas', filter: base),
+          'Clases creadas'),
       _StatSpec(kAsistenciasCollection, 'Asistencias',
-          Icons.fact_check_outlined, 'Tomas de asistencia', filter: base),
+          Icons.fact_check_outlined, 'Tomas de asistencia'),
       _StatSpec(kActividadesCollection, 'Actividades',
-          Icons.edit_calendar_outlined, 'Contenido registrado', filter: base),
+          Icons.edit_calendar_outlined, 'Contenido registrado'),
     ];
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -164,19 +151,12 @@ class _StatsGrid extends StatelessWidget {
 }
 
 class _StatSpec {
-  const _StatSpec(
-    this.collection,
-    this.label,
-    this.icon,
-    this.description, {
-    this.filter,
-  });
+  const _StatSpec(this.collection, this.label, this.icon, this.description);
 
   final String collection;
   final String label;
   final IconData icon;
   final String description;
-  final List<QueryFilter>? filter;
 }
 
 class _LiveStatCard extends StatelessWidget {
@@ -188,7 +168,7 @@ class _LiveStatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final firestore = context.read<FirestoreService>();
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: firestore.watch(spec.collection, filters: spec.filter),
+      stream: firestore.watch(spec.collection),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return StatCard(
@@ -216,6 +196,8 @@ class _LiveStatCard extends StatelessWidget {
 }
 
 class _QuickLinks extends StatelessWidget {
+  const _QuickLinks();
+
   @override
   Widget build(BuildContext context) {
     const items = [
@@ -245,9 +227,7 @@ class _QuickLinks extends StatelessWidget {
 }
 
 class _ActividadesRecientes extends StatelessWidget {
-  const _ActividadesRecientes({required this.institucion});
-
-  final Institucion? institucion;
+  const _ActividadesRecientes();
 
   @override
   Widget build(BuildContext context) {
@@ -257,12 +237,7 @@ class _ActividadesRecientes extends StatelessWidget {
       icon: Icons.history_outlined,
       padding: EdgeInsets.zero,
       child: StreamBuilder(
-        stream: firestore.watch(
-          kActividadesCollection,
-          filters: institucion == null
-              ? null
-              : [QueryFilter('institucionId', institucion!.id)],
-        ),
+        stream: firestore.watch(kActividadesCollection),
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
             return const Padding(

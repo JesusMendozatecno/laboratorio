@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -11,9 +9,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/security_provider.dart';
 
 /// Aplica la seguridad local a la zona autenticada de la aplicación:
-///
-/// - Bloquea la interfaz con huella/PIN al volver del segundo plano.
-/// - Cierra la sesión automáticamente tras un periodo de inactividad.
+/// bloquea la interfaz con huella/PIN al volver del segundo plano.
 class SecurityGate extends StatefulWidget {
   const SecurityGate({super.key, required this.child});
 
@@ -25,19 +21,15 @@ class SecurityGate extends StatefulWidget {
 
 class _SecurityGateState extends State<SecurityGate>
     with WidgetsBindingObserver {
-  Timer? _timer;
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _restartTimer();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _timer?.cancel();
     super.dispose();
   }
 
@@ -49,39 +41,20 @@ class _SecurityGateState extends State<SecurityGate>
       case AppLifecycleState.inactive:
       case AppLifecycleState.hidden:
         security.lock();
-        _timer?.cancel();
       case AppLifecycleState.resumed:
-        _restartTimer();
       case AppLifecycleState.detached:
         break;
     }
   }
 
-  void _restartTimer() {
-    _timer?.cancel();
-    final minutes = context.read<SecurityProvider>().timeoutMinutes;
-    if (minutes <= 0) return;
-    _timer = Timer(Duration(minutes: minutes), _onTimeout);
-  }
-
-  void _onTimeout() {
-    if (!mounted) return;
-    context.read<AuthProvider>().logout();
-  }
-
   @override
   Widget build(BuildContext context) {
     final security = context.watch<SecurityProvider>();
-    return Listener(
-      behavior: HitTestBehavior.translucent,
-      onPointerDown: (_) => _restartTimer(),
-      onPointerSignal: (_) => _restartTimer(),
-      child: Stack(
-        children: [
-          widget.child,
-          if (security.isLocked) const Positioned.fill(child: LockOverlay()),
-        ],
-      ),
+    return Stack(
+      children: [
+        widget.child,
+        if (security.isLocked) const Positioned.fill(child: LockOverlay()),
+      ],
     );
   }
 }

@@ -2,19 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Maneja la seguridad local de la aplicación.
-///
-/// - Bloqueo con huella/PIN al abrir o volver del segundo plano.
-/// - Tiempo de inactividad tras el cual se cierra la sesión.
+/// Maneja la seguridad local de la aplicación: bloqueo con huella/PIN
+/// al abrir o volver del segundo plano. (Sin cierre por inactividad.)
 class SecurityProvider extends ChangeNotifier {
   static const String _kLockEnabled = 'security_lock_enabled';
-  static const String _kTimeout = 'security_timeout_minutes';
-
-  /// Minutos de inactividad por defecto antes de cerrar la sesión.
-  static const int defaultTimeoutMinutes = 15;
-
-  /// Opciones de tiempo de inactividad (0 = nunca).
-  static const List<int> timeoutOptions = [0, 5, 10, 15, 30, 60];
 
   final LocalAuthentication _localAuth = LocalAuthentication();
 
@@ -22,7 +13,6 @@ class SecurityProvider extends ChangeNotifier {
   bool _locked = false;
   bool _unlocking = false;
   bool _biometricAvailable = false;
-  int _timeoutMinutes = defaultTimeoutMinutes;
   bool _ready = false;
 
   bool get lockEnabled => _lockEnabled;
@@ -30,7 +20,6 @@ class SecurityProvider extends ChangeNotifier {
   bool get unlocking => _unlocking;
   bool get biometricAvailable => _biometricAvailable;
   bool get ready => _ready;
-  int get timeoutMinutes => _timeoutMinutes;
 
   /// Indica si la plataforma soporta autenticación biométrica/PIN local.
   bool get platformSupported =>
@@ -45,7 +34,6 @@ class SecurityProvider extends ChangeNotifier {
     try {
       final sp = await SharedPreferences.getInstance();
       _lockEnabled = sp.getBool(_kLockEnabled) ?? false;
-      _timeoutMinutes = sp.getInt(_kTimeout) ?? defaultTimeoutMinutes;
     } catch (_) {
       // Sin preferencias: se usan los valores por defecto.
     }
@@ -104,20 +92,11 @@ class SecurityProvider extends ChangeNotifier {
     if (!isLocked || _unlocking) return !isLocked;
     _unlocking = true;
     notifyListeners();
-    final ok = await _authenticate(
-      'Desbloquea para acceder al laboratorio',
-    );
+    final ok = await _authenticate('Desbloquea para acceder al laboratorio');
     _unlocking = false;
     if (ok) _locked = false;
     notifyListeners();
     return ok;
-  }
-
-  Future<void> setTimeoutMinutes(int minutes) async {
-    if (_timeoutMinutes == minutes) return;
-    _timeoutMinutes = minutes;
-    notifyListeners();
-    await _persist();
   }
 
   Future<bool> _authenticate(String reason) async {
@@ -137,7 +116,6 @@ class SecurityProvider extends ChangeNotifier {
     try {
       final sp = await SharedPreferences.getInstance();
       await sp.setBool(_kLockEnabled, _lockEnabled);
-      await sp.setInt(_kTimeout, _timeoutMinutes);
     } catch (_) {
       // Si no se puede persistir, el valor sigue activo en la sesión.
     }

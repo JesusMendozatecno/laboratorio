@@ -47,6 +47,10 @@ class LaboratorioApp extends StatelessWidget {
             theme: AppTheme.lightFor(theme.brand),
             darkTheme: AppTheme.darkFor(theme.brand),
             themeMode: theme.mode,
+            builder: (context, child) => MediaQuery.withClampedTextScaling(
+              maxScaleFactor: 1.3,
+              child: child!,
+            ),
             home: const AuthGate(),
           );
         },

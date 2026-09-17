@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_constants.dart';
-import '../../../core/responsive/screen.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/theme_toggle_button.dart';
 import '../../../models/app_user.dart';
+import '../widgets/codeclass/institution_picker.dart';
+
+/// Sección a la que pertenece un elemento del menú del dashboard.
+enum DashboardSection { tab, menu }
 
 /// Elemento del menú del dashboard.
 class DashboardPage {
@@ -14,17 +17,72 @@ class DashboardPage {
     required this.label,
     required this.icon,
     required this.child,
+    this.section = DashboardSection.tab,
+    this.group,
   });
 
   final String label;
   final IconData icon;
   final Widget child;
+  final DashboardSection section;
+  final String? group;
 }
 
-/// Estructura responsive del panel:
+/// Permite cambiar de pestaña o sección desde cualquier vista interna
+/// (por ejemplo, los accesos rápidos de Inicio).
+class DashboardIndex extends InheritedWidget {
+  const DashboardIndex({
+    super.key,
+    required this.controller,
+    required super.child,
+  });
+
+  final DashboardNavController controller;
+
+  static DashboardNavController of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<DashboardIndex>()!.controller;
+
+  static DashboardNavController? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<DashboardIndex>()?.controller;
+
+  @override
+  bool updateShouldNotify(DashboardIndex oldWidget) =>
+      controller != oldWidget.controller;
+}
+
+/// Estado de navegación del panel: índice de página activa y último tab.
+class DashboardNavController extends ChangeNotifier {
+  DashboardNavController(this.tabCount);
+
+  final int tabCount;
+  int _index = 0;
+  int _lastTab = 0;
+
+  int get index => _index;
+  bool get isMenuPage => _index >= tabCount;
+
+  void selectTab(int i) {
+    if (i < 0 || i >= tabCount) return;
+    _lastTab = i;
+    _index = i;
+    notifyListeners();
+  }
+
+  void selectMenu(int fullIndex) {
+    _index = fullIndex;
+    notifyListeners();
+  }
+
+  void backToTab() {
+    _index = _lastTab.clamp(0, tabCount - 1);
+    notifyListeners();
+  }
+}
+
+/// Estructura responsive del panel CodeClass:
+/// - Compacto (<1000px): AppBar + 5 pestañas inferiores (NavigationBar) +
+///   menú lateral deslizable (Drawer) para el resto de secciones.
 /// - Escritorio (>=1000px): barra lateral completa + barra superior.
-/// - Tablet (600-999px): barra de navegación compacta (NavigationRail).
-/// - Móvil (<600px): AppBar + menú deslizable (Drawer).
 class DashboardLayout extends StatefulWidget {
   const DashboardLayout({
     super.key,
@@ -42,55 +100,124 @@ class DashboardLayout extends StatefulWidget {
 }
 
 class _DashboardLayoutState extends State<DashboardLayout> {
-  int _index = 0;
+  late DashboardNavController _nav;
+
+  List<DashboardPage> get _tabs =>
+      widget.pages.where((p) => p.section == DashboardSection.tab).toList();
+
+  List<DashboardPage> get _menu =>
+      widget.pages.where((p) => p.section == DashboardSection.menu).toList();
+
+  int _fullIndex(DashboardPage page) => widget.pages.indexOf(page);
+
+  @override
+  void initState() {
+    super.initState();
+    _nav = DashboardNavController(_tabs.length);
+  }
+
+  @override
+  void didUpdateWidget(DashboardLayout oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.pages.length != widget.pages.length) {
+      _nav = DashboardNavController(_tabs.length);
+    }
+  }
+
+  @override
+  void dispose() {
+    _nav.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final current = widget.pages[_index];
-    final size = context.screenSize;
+    final width = MediaQuery.sizeOf(context).width;
+    final compact = width < 1000;
 
-    if (size == ScreenSize.mobile) {
-      return _buildMobile(current);
-    }
-    return _buildWide(current, rail: size == ScreenSize.tablet);
+    return DashboardIndex(
+      controller: _nav,
+      child: ListenableBuilder(
+        listenable: _nav,
+        builder: (context, _) {
+          if (widget.pages.isEmpty) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+          final current = widget.pages[_nav.index.clamp(0, widget.pages.length - 1)];
+          if (compact) {
+            return _buildCompact(current);
+          }
+          return _buildWide(current);
+        },
+      ),
+    );
   }
 
   // ===============================
-  // MÓVIL
+  // COMPACTO (MÓVIL / TABLET)
   // ===============================
 
-  Widget _buildMobile(DashboardPage current) {
+  Widget _buildCompact(DashboardPage current) {
+    final isMenu = _nav.isMenuPage;
     return Scaffold(
       appBar: AppBar(
-        leading: Builder(
-          builder: (context) => IconButton(
-            tooltip: 'Menú',
-            icon: const Icon(Icons.menu),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
-        ),
+        leading: isMenu
+            ? IconButton(
+                tooltip: 'Volver',
+                icon: const Icon(Icons.arrow_back),
+                onPressed: _nav.backToTab,
+              )
+            : Builder(
+                builder: (context) => IconButton(
+                  tooltip: 'Menú',
+                  icon: const Icon(Icons.menu),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                ),
+              ),
         title: Text(current.label),
         actions: const [
           ThemeToggleButton(),
           SizedBox(width: AppDimens.sm),
         ],
       ),
-      drawer: Drawer(child: _buildMenu()),
+      drawer: isMenu ? null : Drawer(child: _buildDrawer()),
       body: _buildContent(current),
+      bottomNavigationBar: isMenu ? null : _buildNavigationBar(),
     );
   }
 
+  Widget _buildNavigationBar() {
+    final tabs = _tabs;
+    if (tabs.isEmpty) return const SizedBox.shrink();
+    return NavigationBar(
+      selectedIndex: _nav.index.clamp(0, tabs.length - 1),
+      onDestinationSelected: _nav.selectTab,
+      destinations: [
+        for (final page in tabs)
+          NavigationDestination(
+            icon: Icon(page.icon),
+            selectedIcon: Icon(_selectedIcon(page.icon)),
+            label: page.label,
+          ),
+      ],
+    );
+  }
+
+  IconData _selectedIcon(IconData icon) => icon;
+
   // ===============================
-  // TABLET / DESKTOP
+  // ESCRITORIO
   // ===============================
 
-  Widget _buildWide(DashboardPage current, {required bool rail}) {
+  Widget _buildWide(DashboardPage current) {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          rail ? _buildRail() : _buildSidebar(),
+          _buildSidebar(),
           VerticalDivider(width: 1, color: scheme.outlineVariant),
           Expanded(
             child: Column(
@@ -120,7 +247,9 @@ class _DashboardLayoutState extends State<DashboardLayout> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Inicio / ${page.label}',
+                  _nav.isMenuPage
+                      ? 'Menú / ${page.label}'
+                      : 'CodeClass / ${page.label}',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -149,7 +278,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 180),
           child: KeyedSubtree(
-            key: ValueKey<int>(_index),
+            key: ValueKey<int>(_nav.index),
             child: page.child,
           ),
         ),
@@ -158,7 +287,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
   }
 
   // ===============================
-  // BARRA LATERAL (DESKTOP)
+  // BARRA LATERAL (ESCRITORIO)
   // ===============================
 
   Widget _buildSidebar() {
@@ -172,7 +301,14 @@ class _DashboardLayoutState extends State<DashboardLayout> {
           children: [
             Padding(
               padding: const EdgeInsets.all(AppDimens.lg),
-              child: _buildBrand(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildBrand(),
+                  const SizedBox(height: AppDimens.md),
+                  const InstitutionPicker(),
+                ],
+              ),
             ),
             const Divider(height: 1),
             const SizedBox(height: AppDimens.sm),
@@ -182,10 +318,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                   horizontal: AppDimens.sm,
                   vertical: AppDimens.xs,
                 ),
-                children: [
-                  for (var i = 0; i < widget.pages.length; i++)
-                    _buildNavItem(i, widget.pages[i]),
-                ],
+                children: _buildNavItems(dense: false),
               ),
             ),
             const Divider(height: 1),
@@ -203,6 +336,115 @@ class _DashboardLayoutState extends State<DashboardLayout> {
               child: _buildLogout(),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildNavItems({required bool dense}) {
+    final items = <Widget>[];
+    final tabs = _tabs;
+    if (tabs.isNotEmpty) {
+      items.add(_sectionHeader(dense, 'Principal'));
+      for (var i = 0; i < tabs.length; i++) {
+        items.add(_buildNavItem(i, tabs[i], dense: dense));
+      }
+    }
+    if (_menu.isNotEmpty) {
+      for (final group in [
+        if (_menu.any((p) => p.group == null)) _menu.where((p) => p.group == null).toList(),
+        for (final name in _groups()) _menu.where((p) => p.group == name).toList(),
+      ]) {
+        if (group.isEmpty) continue;
+        final label = group.first.group ?? 'Más opciones';
+        items.add(_sectionHeader(dense, label));
+        for (final page in group) {
+          items.add(_buildNavItem(_fullIndex(page), page, dense: dense));
+        }
+      }
+    }
+    return items;
+  }
+
+  List<String> _groups() {
+    final names = <String>[];
+    for (final p in _menu) {
+      if (p.group != null && !names.contains(p.group)) names.add(p.group!);
+    }
+    return names;
+  }
+
+  Widget _sectionHeader(bool dense, String label) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        AppDimens.md,
+        dense ? AppDimens.xs : AppDimens.md,
+        AppDimens.md,
+        4,
+      ),
+      child: Text(
+        label.toUpperCase(),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.6,
+          color: scheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, DashboardPage page,
+      {required bool dense}) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    final selected = index == _nav.index;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Material(
+        color: selected ? scheme.primaryContainer : Colors.transparent,
+        borderRadius: BorderRadius.circular(AppDimens.radiusSm),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppDimens.radiusSm),
+          onTap: () {
+            if (page.section == DashboardSection.tab) {
+              _nav.selectTab(index);
+            } else {
+              _nav.selectMenu(index);
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppDimens.md,
+              vertical: 11,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  page.icon,
+                  size: 21,
+                  color: selected
+                      ? scheme.onPrimaryContainer
+                      : scheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: AppDimens.md),
+                Expanded(
+                  child: Text(
+                    page.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: text.bodyMedium?.copyWith(
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+                      color: selected
+                          ? scheme.onPrimaryContainer
+                          : scheme.onSurface,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -251,52 +493,6 @@ class _DashboardLayoutState extends State<DashboardLayout> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildNavItem(int index, DashboardPage page) {
-    final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
-    final selected = index == _index;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Material(
-        color: selected ? scheme.primaryContainer : Colors.transparent,
-        borderRadius: BorderRadius.circular(AppDimens.radiusSm),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppDimens.radiusSm),
-          onTap: () => setState(() => _index = index),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppDimens.md,
-              vertical: 11,
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  page.icon,
-                  size: 21,
-                  color: selected
-                      ? scheme.onPrimaryContainer
-                      : scheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: AppDimens.md),
-                Expanded(
-                  child: Text(
-                    page.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: text.bodyMedium?.copyWith(
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
-                      color: selected ? scheme.onPrimaryContainer : scheme.onSurface,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -358,49 +554,10 @@ class _DashboardLayoutState extends State<DashboardLayout> {
   }
 
   // ===============================
-  // RAIL (TABLET)
+  // DRAWER (COMPACTO)
   // ===============================
 
-  Widget _buildRail() {
-    return NavigationRail(
-      selectedIndex: _index,
-      onDestinationSelected: (i) => setState(() => _index = i),
-      labelType: NavigationRailLabelType.all,
-      leading: Padding(
-        padding: const EdgeInsets.only(top: AppDimens.md, bottom: AppDimens.xs),
-        child: _avatar(),
-      ),
-      destinations: [
-        for (final page in widget.pages)
-          NavigationRailDestination(
-            icon: Icon(page.icon),
-            selectedIcon: Icon(page.icon),
-            label: Text(page.label),
-          ),
-      ],
-      trailing: Expanded(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            IconButton(
-              tooltip: 'Cerrar Sesión',
-              icon: const Icon(Icons.logout),
-              color: AppColors.danger,
-              onPressed: widget.onLogout,
-            ),
-            const SizedBox(height: AppDimens.sm),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ===============================
-  // DRAWER (MÓVIL)
-  // ===============================
-
-  Widget _buildMenu() {
-    final scheme = Theme.of(context).colorScheme;
+  Widget _buildDrawer() {
     final palette = Theme.of(context).extension<BrandPalette>()!;
     final text = Theme.of(context).textTheme;
     final rol = UserRoles.labels[widget.user.tipo] ?? widget.user.tipo;
@@ -509,26 +666,23 @@ class _DashboardLayoutState extends State<DashboardLayout> {
               ],
             ),
           ),
-          const SizedBox(height: AppDimens.sm),
-          for (var i = 0; i < widget.pages.length; i++)
-            ListTile(
-              leading: Icon(widget.pages[i].icon),
-              title: Text(widget.pages[i].label),
-              selected: i == _index,
-              selectedColor: scheme.onPrimaryContainer,
-              selectedTileColor: scheme.primaryContainer,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppDimens.radiusSm),
-              ),
-              onTap: () {
-                setState(() => _index = i);
-                Navigator.of(context).pop();
-              },
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppDimens.lg,
+              AppDimens.lg,
+              AppDimens.lg,
+              0,
             ),
+            child: InstitutionPicker(
+              onChanged: (_) => _nav.selectTab(1),
+            ),
+          ),
+          ..._drawerNavItems(),
           const Divider(height: 1),
           ListTile(
             leading: Icon(Icons.logout, color: AppColors.danger),
-            title: Text('Cerrar Sesión', style: TextStyle(color: AppColors.danger)),
+            title: Text('Cerrar Sesión',
+                style: TextStyle(color: AppColors.danger)),
             onTap: () {
               Navigator.of(context).pop();
               widget.onLogout();
@@ -539,9 +693,41 @@ class _DashboardLayoutState extends State<DashboardLayout> {
       ),
     );
   }
+
+  List<Widget> _drawerNavItems() {
+    final scheme = Theme.of(context).colorScheme;
+    final items = <Widget>[];
+    for (final group in [
+      if (_menu.any((p) => p.group == null))
+        _menu.where((p) => p.group == null).toList(),
+      for (final name in _groups()) _menu.where((p) => p.group == name).toList(),
+    ]) {
+      if (group.isEmpty) continue;
+      final label = group.first.group ?? 'Más opciones';
+      items.add(_sectionHeader(true, label));
+      for (final page in group) {
+        final index = _fullIndex(page);
+        items.add(ListTile(
+          leading: Icon(page.icon),
+          title: Text(page.label),
+          selected: index == _nav.index,
+          selectedColor: scheme.onPrimaryContainer,
+          selectedTileColor: scheme.primaryContainer,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDimens.radiusSm),
+          ),
+          onTap: () {
+            _nav.selectMenu(index);
+            Navigator.of(context).pop();
+          },
+        ));
+      }
+    }
+    return items;
+  }
 }
 
-/// Fila clicable con icono y texto, usada en el menú lateral.
+/// Fila clicable con icono y texto, usada en la barra lateral.
 class _InkTile extends StatelessWidget {
   const _InkTile({
     required this.icon,

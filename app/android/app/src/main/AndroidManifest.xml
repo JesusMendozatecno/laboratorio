@@ -2,7 +2,7 @@
     <!-- Permite el desbloqueo con huella/biometría (local_auth). -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <application
-        android:label="Lab. Programación"
+        android:label="CodeClass"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

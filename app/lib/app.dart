@@ -7,6 +7,7 @@ import 'features/dashboard/presentation/dashboard_shell.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/security/security_gate.dart';
 import 'providers/auth_provider.dart';
+import 'providers/instituccion_provider.dart';
 import 'providers/security_provider.dart';
 import 'providers/theme_provider.dart';
 import 'services/auth_service.dart';
@@ -33,6 +34,9 @@ class LaboratorioApp extends StatelessWidget {
         ),
         ChangeNotifierProvider<SecurityProvider>(
           create: (_) => SecurityProvider()..init(),
+        ),
+        ChangeNotifierProvider<InstituccionProvider>(
+          create: (_) => InstituccionProvider(),
         ),
       ],
       child: Consumer<ThemeProvider>(

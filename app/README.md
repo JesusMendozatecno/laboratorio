@@ -1,8 +1,29 @@
-# Laboratorio de Programación — App Flutter
+# CodeClass — Gestión de clases de programación (App Flutter)
 
-Aplicación multiplataforma (Android, iOS, Web, Windows) para la gestión del
-laboratorio, migrada desde el sistema PHP/MySQL original. Usa **Firebase Auth +
-Cloud Firestore** como backend y **Provider** para el manejo de estado.
+Aplicación multiplataforma (Android, iOS, Web, Windows) para la gestión de
+instituciones, materias, estudiantes, equipos de trabajo, clases, grupos,
+asistencia y actividades de cursos de programación. Migrada desde el sistema
+PHP/MySQL original. Usa **Firebase Auth + Cloud Firestore** como backend y
+**Provider** para el manejo de estado.
+
+## CodeClass (módulos principales)
+
+- **Inicio (CC-NAV-01):** resumen global y por institución con datos reales.
+- **Registro (CC-NAV-02):** espacio de trabajo por institución con materias,
+  estudiantes, equipos, clases, grupos, asistencia y actividades.
+  - *Instituciones* (CC-REG-02), *Materias* (CC-REG-01, solo catálogo),
+    *Estudiantes* (CC-REG-05), *Equipos* (CC-REG-04), *Clases* (CC-REG-06),
+    *Grupos* (CC-REG-07), *Asistencia* (CC-REG-08/09) y *Actividades*
+    (CC-REG-10).
+- **Teoría (CC-NAV-03):** contenidos y materias de la institución activa.
+- **Práctica (CC-NAV-04):** plan de prácticas por institución y catálogo global.
+- **Usuario (CC-NAV-05):** perfil, apariencia, seguridad e información.
+- **Menú lateral:** catálogo (instituciones) y funciones heredadas (usuarios,
+  asignaciones, prácticas, reportes).
+
+Roles de uso: **docente** (todas las funciones) y **encargado/admin**
+(funciones adicionales). Los **estudiantes** se registran por institución
+(CC-REG-05), separados de los usuarios de la app.
 
 ## Estado actual
 
@@ -108,16 +129,22 @@ APK en la nube:
 
 ## Colecciones de Firestore
 
-| Colección    | Descripción                                  |
-| ------------ | -------------------------------------------- |
-| `usuarios`   | Perfil: nombre, apellido, cédula, correo, tipo |
-| `clases`     | Registro de clases                           |
-| `reportes`   | Reportes de problemas                        |
-| `equipos`    | Equipos del laboratorio                      |
-| `asignaciones` | Equipos asignados a estudiantes             |
-| `practicas`  | Prácticas de programación (lenguaje, IDE)    |
-| `profesores` | Profesores (panel encargado)                 |
-| `institutos` | Institutos (panel encargado)                 |
+| Colección          | Descripción                                    |
+| ------------------ | ---------------------------------------------- |
+| `usuarios`         | Perfil: nombre, apellido, cédula, correo, tipo |
+| `clases`           | Registro de clases (legado)                    |
+| `reportes`         | Reportes de problemas                          |
+| `equipos`          | Equipos del laboratorio (legado)               |
+| `asignaciones`     | Equipos asignados a estudiantes (legado)       |
+| `practicas`        | Prácticas de programación (catálogo global)    |
+| `profesores`       | Profesores (panel encargado)                   |
+| `institutos`       | Institutos (panel encargado)                   |
+| `instituciones`    | Instituciones CodeClass (colegio/universidad)  |
+| `materias`         | Materias del catálogo (CC-REG-01)              |
+| `estudiantes`      | Estudiantes por institución (CC-REG-05)        |
+| `clase_estudiantes`| Estudiantes asignados a clases y su grupo      |
+| `asistencias`      | Asistencia por clase/fecha/modalidad/grupo     |
+| `actividades`      | Teoría, laboratorio y práctica registradas     |
 
 ## Notas sobre la migración del sistema PHP
 

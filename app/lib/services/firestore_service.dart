@@ -67,6 +67,22 @@ class FirestoreService {
     return snapshot.docs.map((doc) => doc.data()).toList();
   }
 
+  /// Lectura puntual de todos los documentos de una colección,
+  /// incluyendo el identificador de cada documento en la clave `id`.
+  Future<List<Map<String, dynamic>>> getAllWithIds(
+    String collection, {
+    List<QueryFilter>? filters,
+  }) async {
+    Query<Map<String, dynamic>> query = _db.collection(collection);
+    filters?.forEach((f) {
+      query = query.where(f.field, isEqualTo: f.value);
+    });
+    final snapshot = await query.get();
+    return snapshot.docs
+        .map((doc) => {...doc.data(), 'id': doc.id})
+        .toList();
+  }
+
   Stream<QuerySnapshot<Map<String, dynamic>>> watch(String collection,
       {List<QueryFilter>? filters, String? orderBy, bool descending = false}) {
     Query<Map<String, dynamic>> query = _db.collection(collection);

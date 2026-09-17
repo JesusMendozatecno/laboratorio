@@ -126,5 +126,47 @@ service cloud.firestore {
       allow create, update: if isDocenteOEncargado();
       allow delete: if isDocenteOEncargado();
     }
+
+    // ============================================================
+    // CodeClass: instituciones, materias, estudiantes, equipos de
+    // trabajo, clases, grupos, asistencia y actividades.
+    // Docentes y encargados administran; los estudiantes solo leen.
+    // ============================================================
+
+    // Instituciones (catálogo dinámico)
+    match /instituciones/{id} {
+      allow read: if signedIn();
+      allow write: if isDocenteOEncargado();
+    }
+
+    // Materias (catálogo por institución)
+    match /materias/{id} {
+      allow read: if signedIn();
+      allow write: if isDocenteOEncargado();
+    }
+
+    // Estudiantes (registro por institución, separados de usuarios)
+    match /estudiantes/{id} {
+      allow read: if signedIn();
+      allow write: if isDocenteOEncargado();
+    }
+
+    // Miembros de clase (estudiantes asignados a una clase y su grupo)
+    match /clase_estudiantes/{id} {
+      allow read: if signedIn();
+      allow write: if isDocenteOEncargado();
+    }
+
+    // Asistencia por clase, fecha, modalidad y grupo
+    match /asistencias/{id} {
+      allow read: if signedIn();
+      allow write: if isDocenteOEncargado();
+    }
+
+    // Actividades (teoría, laboratorio y práctica)
+    match /actividades/{id} {
+      allow read: if signedIn();
+      allow write: if isDocenteOEncargado();
+    }
   }
 }
